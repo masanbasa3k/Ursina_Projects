@@ -4,18 +4,17 @@ from ursina import *
 GRAVITY = -9.81
 
 class Brick(Entity):
-    def __init__(self, x, y, scale):
+    def __init__(self, position, scale):
         super().__init__()
         self.model = "cube"
         self.color = color.gray
         self.texture = "white_cube"
-        self.x = x
-        self.y = y
+        self.position = position
         self.scale = scale
         self.collider = "box"
 
 class Player(Entity):
-    def __init__(self, position=(0, 0, 0)):
+    def __init__(self, position=(0,0,0)):
         super().__init__()
         self.model='cube'
         self.color=color.orange
@@ -31,13 +30,14 @@ class Player(Entity):
         
 
     def update(self):
-        middle_ray = raycast(self.position , self.direction, ignore=[self,], distance=.6, debug=False)
-        bottom_ray = raycast(self.position , direction=Vec3(0,-1,0), ignore=[self,], distance=1, debug=False)
+        origin = self.world_position
+
+        bottom_ray = raycast(origin , direction=Vec3(0,-1,0), ignore=[self,], distance=1, debug=False)
 
         if not self.grounded:
             self.velocity += GRAVITY * time.dt
             self.y += self.velocity * time.dt
-            if bottom_ray:
+            if bottom_ray.hit:
                 self.y = self.position.y
                 self.velocity = 0
                 self.grounded = True
@@ -46,14 +46,16 @@ class Player(Entity):
                 self.velocity = 0
                 self.grounded = True
         else:
-            if not bottom_ray:
+            if not bottom_ray.hit:
                 self.grounded = False
             if held_keys['space']:
                 self.velocity = self.jump_speed
                 self.grounded = False
 
         self.direction = Vec3(self.forward * (held_keys['w'] - held_keys['s'])).normalized()
-        if not middle_ray:
+        middle_ray = raycast(origin , self.direction, ignore=[self,], distance=.5, debug=False)
+
+        if not middle_ray.hit:
             self.position += self.direction * self.speed * time.dt 
             if held_keys['d']:
                 self.rotation_y += 90 * time.dt
@@ -67,7 +69,9 @@ app = Ursina()
 camera.position=(0,20,-20)
 camera.rotation_x = 45
 
-cube = Brick(-3, 0, (3,1,3))
+cube = Brick((-3,0,0), (3,1,3))
+cube1 = Brick((-2,2,4), (3,1,3))
+
 player = Player()
 
 app.run()
